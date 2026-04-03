@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ranking — Rede Frantchesco</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0A0A0A;--bg2:#141414;--bg3:#1E1E1E;--border:#252525;
+  --gold:#C4A265;--gold2:#D4B87A;--gold3:#8B6F3E;
+  --verde:#0D3D2E;--verde2:#0F4D39;--verde3:#1A6B4A;
+  --white:#F0EDE8;--gray:#6B6560;--gray2:#9A9590;
+  --green:#27AE60;--yellow:#F1C40F;--orange:#E67E22;--red:#E74C3C;--blue:#4285F4;
+}
+body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;z-index:999;}
+.spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.brand{font-family:Syne,sans-serif;font-size:1.15rem;font-weight:800;color:var(--gold);letter-spacing:-.02em;}
+.brand-sub{font-size:.52rem;color:var(--gray);letter-spacing:.15em;text-transform:uppercase;margin-top:.1rem;}
+.loja-bar{display:flex;gap:0;border:1px solid var(--border);margin:.85rem 1rem;}
+.loja-btn{flex:1;background:transparent;border:none;color:var(--gray);font-family:Syne,sans-serif;font-size:.72rem;font-weight:600;padding:.6rem;cursor:pointer;transition:all .15s;letter-spacing:.06em;text-transform:uppercase;}
+.loja-btn.active{background:var(--verde);color:var(--white);}
+.content{padding:.85rem 1rem;max-width:560px;margin:0 auto;}
+.topo-mes{background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--gold);padding:1rem 1.1rem;margin-bottom:1rem;}
+.topo-label{font-size:.58rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);margin-bottom:.5rem;}
+.topo-body{display:flex;align-items:flex-start;gap:.85rem;}
+.topo-pos{font-family:Syne,sans-serif;font-size:2.5rem;font-weight:800;color:var(--gold);opacity:.2;line-height:1;flex-shrink:0;}
+.topo-info{flex:1;}
+.topo-nome{font-family:Syne,sans-serif;font-size:1.15rem;font-weight:800;color:var(--gold);line-height:1.1;}
+.topo-nivel{font-size:.65rem;margin-top:.2rem;color:var(--gray2);}
+.topo-nums{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-top:.65rem;}
+.topo-num{background:var(--bg3);padding:.4rem .65rem;}
+.topo-num-lbl{font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);}
+.topo-num-val{font-family:Syne,sans-serif;font-size:.95rem;font-weight:700;margin-top:.1rem;}
+.sec-titulo{font-size:.58rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);margin-bottom:.65rem;}
+.rank-item{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--border);padding:.75rem 1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem;cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none;}
+.rank-item:active{opacity:.8;}
+.rank-item.pos1{border-left-color:#FFD700;}
+.rank-item.pos2{border-left-color:#C0C0C0;}
+.rank-item.pos3{border-left-color:#CD7F32;}
+.rank-num{font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;color:var(--gray);min-width:28px;text-align:center;opacity:.3;line-height:1;}
+.pos1 .rank-num{color:#FFD700;opacity:1;}
+.pos2 .rank-num{color:#C0C0C0;opacity:1;}
+.pos3 .rank-num{color:#CD7F32;opacity:1;}
+.rank-sema{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.rank-body{flex:1;min-width:0;}
+.rank-nome{font-family:Syne,sans-serif;font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rank-sub{font-size:.6rem;color:var(--gray2);margin-top:.1rem;}
+.rank-right{text-align:right;flex-shrink:0;}
+.rank-nivel{font-size:.72rem;font-weight:700;}
+.rank-nums{font-size:.6rem;color:var(--gray);margin-top:.1rem;}
+.rank-chevron{font-size:.8rem;color:var(--gray);margin-left:.15rem;}
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+#modal-overlay.open{display:flex;}
+#modal-sheet{background:var(--bg2);border-top:1px solid var(--border);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border-radius:16px 16px 0 0;animation:slideUp .22s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:.65rem auto .75rem;}
+.modal-header{padding:.25rem 1.1rem 1rem;display:flex;align-items:flex-start;justify-content:space-between;}
+.modal-nome{font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;}
+.modal-fechar{background:none;border:none;color:var(--gray);font-size:1.2rem;cursor:pointer;padding:.25rem;line-height:1;}
+.modal-body{padding:0 1.1rem 2rem;}
+.nivel-strip{display:flex;align-items:center;gap:.85rem;border:1px solid var(--border);padding:.85rem 1rem;margin-bottom:1rem;}
+.acum-box{background:var(--bg3);border:1px solid var(--border);padding:.85rem 1rem;margin-bottom:.85rem;}
+.acum-titulo{font-size:.58rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:.65rem;}
+.acum-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+.prog-row{display:flex;justify-content:space-between;font-size:.6rem;color:var(--gray);margin-bottom:.25rem;}
+.prog-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:.65rem;}
+.prog-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+.metas-strip{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.65rem;}
+.meta-tag{font-size:.58rem;font-weight:700;padding:.2rem .55rem;border-radius:2px;border:1px solid;letter-spacing:.04em;text-transform:uppercase;}
+.semana-card{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--border);padding:.75rem .9rem;margin-bottom:.5rem;}
+.semana-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
+.semana-label{font-family:Syne,sans-serif;font-size:.72rem;font-weight:700;}
+.semana-sema{width:9px;height:9px;border-radius:50%;}
+.semana-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.35rem;}
+.semana-kpi{background:var(--bg2);padding:.4rem .5rem;}
+.semana-kpi-lbl{font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);}
+.semana-kpi-val{font-family:Syne,sans-serif;font-size:.88rem;font-weight:700;margin-top:.1rem;}
+.footer{text-align:center;font-size:.6rem;color:var(--gray);padding:2rem 0 1.5rem;}
+@media(max-width:380px){.semana-grid{grid-template-columns:1fr 1fr;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tesouroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes tesouroGlow{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes pulsar{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem;background:radial-gradient(ellipse at 60% 30%,#0D2A1A 0%,#0A0A0A 70%);">
+  <div style="width:100%;max-width:360px;">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="font-family:Syne,sans-serif;font-size:2.6rem;font-weight:800;color:var(--gold);letter-spacing:-.03em;text-shadow:0 0 40px rgba(196,162,101,.35);">NaMão</div>
+      <div style="font-size:.58rem;color:var(--gray);letter-spacing:.22em;text-transform:uppercase;margin-top:.3rem;">Ranking · Rede Frantchesco</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--gold);overflow:hidden;">
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--border);">
+        <button id="login-aba-entrar" onclick="setLoginAba('entrar')"
+          style="flex:1;background:var(--verde);color:var(--white);border:none;font-family:Syne,sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.75rem;cursor:pointer;transition:all .15s;">
+          Entrar
+        </button>
+        <button id="login-aba-cad" onclick="setLoginAba('cadastrar')"
+          style="flex:1;background:transparent;color:var(--gray2);border:none;border-left:1px solid var(--border);font-family:Syne,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.75rem;cursor:pointer;transition:all .15s;">
+          Cadastrar
+        </button>
+      </div>
+      <!-- Form Entrar -->
+      <div id="login-form-entrar" style="padding:1.5rem;">
+        <div style="margin-bottom:.85rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Usuário</label>
+          <input type="text" id="login-usuario" placeholder="seu_usuario" autocomplete="off"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.72rem 1rem;outline:none;"
+            onkeydown="if(event.key==='Enter')document.getElementById('login-senha').focus()">
+        </div>
+        <div style="margin-bottom:1.1rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Senha</label>
+          <input type="password" id="login-senha" placeholder="Sua senha"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.72rem 1rem;outline:none;"
+            onkeydown="if(event.key==='Enter')fazerLogin()">
+        </div>
+        <button onclick="fazerLogin()"
+          style="width:100%;background:var(--gold);color:var(--bg);font-family:Syne,sans-serif;font-size:.82rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:.9rem;border:none;cursor:pointer;">
+          Entrar
+        </button>
+      </div>
+      <!-- Form Cadastrar -->
+      <div id="login-form-cad" style="display:none;padding:1.5rem;">
+        <div style="margin-bottom:.75rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Nome Completo</label>
+          <input type="text" id="cad-nome" placeholder="Seu nome completo"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.65rem 1rem;outline:none;">
+        </div>
+        <div style="margin-bottom:.75rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Usuário <span style="font-size:.52rem;color:var(--gray2);text-transform:none;letter-spacing:0;">(minúsculas, sem espaço ou acento)</span></label>
+          <input type="text" id="cad-usuario" placeholder="ex: joaosilva" autocomplete="off"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.65rem 1rem;outline:none;"
+            oninput="this.value=normalizarUsuario(this.value)">
+        </div>
+        <div style="margin-bottom:.75rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Celular</label>
+          <input type="tel" id="cad-celular" placeholder="(DDD) 9 XXXX-XXXX"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.65rem 1rem;outline:none;"
+            oninput="this.value=formatarCelular(this.value)">
+        </div>
+        <div style="margin-bottom:.75rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">E-mail</label>
+          <input type="email" id="cad-email" placeholder="seu@email.com"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.65rem 1rem;outline:none;">
+        </div>
+        <div style="margin-bottom:.75rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Confirmar E-mail</label>
+          <input type="email" id="cad-email-conf" placeholder="seu@email.com novamente"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.65rem 1rem;outline:none;">
+        </div>
+        <div style="margin-bottom:.75rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Senha</label>
+          <input type="password" id="cad-senha" placeholder="Mínimo 4 caracteres"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.65rem 1rem;outline:none;">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.35rem;">Confirmar Senha</label>
+          <input type="password" id="cad-conf" placeholder="Repita a senha"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-family:Inter,sans-serif;font-size:.88rem;padding:.65rem 1rem;outline:none;"
+            onkeydown="if(event.key==='Enter')fazerCadastro()">
+        </div>
+        <button onclick="fazerCadastro()"
+          style="width:100%;background:var(--verde);color:var(--white);font-family:Syne,sans-serif;font-size:.82rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:.9rem;border:none;cursor:pointer;">
+          Criar conta
+        </button>
+      </div>
+      <div id="login-erro" style="font-size:.68rem;color:#E74C3C;text-align:center;padding:0 1.5rem .85rem;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- TESOURO — saldo flutuante -->
+<div id="tesouro-widget" style="display:none;position:fixed;bottom:1.25rem;right:1rem;z-index:100;cursor:pointer;animation:tesouroFloat 3s ease-in-out infinite;" onclick="abrirTesouro()">
+  <div style="position:relative;">
+    <!-- Brilhos -->
+    <div style="position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(34,197,94,.35) 0%,transparent 70%);animation:tesouroGlow 2s ease-in-out infinite;"></div>
+    <!-- Baú -->
+    <div style="background:linear-gradient(135deg,#064e1c,#0a7a2e);border:2px solid #22c55e;border-radius:12px;padding:.65rem .85rem;box-shadow:0 4px 20px rgba(34,197,94,.4),0 0 0 1px rgba(34,197,94,.2);min-width:100px;text-align:center;">
+      <div style="font-size:1.4rem;line-height:1;">💰</div>
+      <div style="font-family:Syne,sans-serif;font-size:.58rem;font-weight:600;color:#86efac;letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem;">Saldo</div>
+      <div id="tesouro-saldo" style="font-family:Syne,sans-serif;font-size:1rem;font-weight:800;color:#22c55e;text-shadow:0 0 10px rgba(34,197,94,.6);">R$ 0,00</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal tesouro -->
+<div id="tesouro-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:300;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--bg2);border-top:2px solid #22c55e;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;animation:slideUp .22s ease;">
+
+    <!-- Header saldo -->
+    <div style="text-align:center;padding:1.5rem 1.25rem 1rem;position:sticky;top:0;background:var(--bg2);border-bottom:1px solid var(--border);z-index:1;">
+      <div style="font-size:2rem;margin-bottom:.3rem;">💰</div>
+      <div style="font-family:Syne,sans-serif;font-size:.78rem;font-weight:700;color:#86efac;letter-spacing:.1em;text-transform:uppercase;">Saldo a Receber</div>
+      <div id="tesouro-modal-saldo" style="font-family:Syne,sans-serif;font-size:2.4rem;font-weight:800;color:#22c55e;line-height:1.1;text-shadow:0 0 24px rgba(34,197,94,.4);">R$ 0,00</div>
+      <div style="font-size:.62rem;color:var(--gray2);margin-top:.2rem;" id="tesouro-modal-nome">—</div>
+    </div>
+
+    <div style="padding:1rem 1.25rem 1.5rem;">
+
+      <!-- Regras colapsadas -->
+      <div style="margin-bottom:1rem;">
+        <div style="font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#22c55e;margin-bottom:.5rem;">ⓘ Regras de Resgate</div>
+        <div style="background:#051a0d;border:1px solid rgba(34,197,94,.2);border-left:3px solid #22c55e;padding:.85rem 1rem;font-size:.7rem;color:#86efac;line-height:1.8;">
+          📅 <strong style="color:#fff;">Resgate toda segunda-feira</strong> após conferência do semáforo e das metas.<br>
+          ✅ Só são pagos os giros cujas metas foram <strong style="color:#fff;">confirmadas no semáforo</strong>.<br>
+          ❌ Giros sem meta batida <strong style="color:#fff;">não serão pagos</strong>.<br>
+          🔒 Em caso de dúvida, o gestor tem a palavra final.
+        </div>
+      </div>
+
+      <!-- Pendente esta semana -->
+      <div style="font-size:.58rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#22c55e;margin-bottom:.5rem;">Esta semana — Pendente</div>
+      <div id="tesouro-hist-pendente" style="margin-bottom:1.1rem;"></div>
+
+      <!-- Histórico recebidos -->
+      <div style="font-size:.58rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);margin-bottom:.5rem;">Histórico — Recebidos</div>
+      <div id="tesouro-hist-recebidos" style="margin-bottom:1.25rem;"></div>
+
+      <!-- Botões -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;position:sticky;bottom:0;background:var(--bg2);padding-top:.75rem;">
+        <button onclick="fecharTesouro()" style="background:var(--bg3);border:1px solid var(--border);color:var(--gray2);font-family:Syne,sans-serif;font-size:.78rem;font-weight:600;padding:.75rem;cursor:pointer;">Fechar</button>
+        <button onclick="confirmarRecebido()" style="background:linear-gradient(135deg,#064e1c,#0a7a2e);border:1px solid #22c55e;color:#22c55e;font-family:Syne,sans-serif;font-size:.78rem;font-weight:800;padding:.75rem;cursor:pointer;letter-spacing:.06em;">✓ Recebi o pagamento</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="loading">
+  <div style="font-family:Syne,sans-serif;font-size:2rem;font-weight:800;color:var(--gold);letter-spacing:-.03em;">NaMao</div>
+  <div class="spinner" style="margin-top:.5rem;"></div>
+  <div style="font-family:Syne,sans-serif;font-size:.68rem;color:var(--gray);letter-spacing:.15em;text-transform:uppercase;margin-top:.5rem;">Carregando ranking...</div>
+</div>
+
+<div id="app" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="brand">NaMao</div>
+      <div class="brand-sub">Ranking Semanal</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;">
+      <div id="hdr-badge" style="font-size:.62rem;font-weight:700;font-family:Syne,sans-serif;padding:.25rem .65rem;border:1px solid var(--gold3);color:var(--gold);">FB Matriz</div>
+      <button onclick="fazerLogout()" style="background:none;border:none;color:var(--gray);font-size:.6rem;cursor:pointer;padding:.25rem;" title="Sair">✕ Sair</button>
+    </div>
+  </div>
+  <div class="loja-bar">
+    <button class="loja-btn active" id="btn-loja-matriz" onclick="setLoja('matriz',this)">FB Matriz</button>
+    <button class="loja-btn" id="btn-loja-fb2" onclick="setLoja('fb2',this)">FB 2</button>
+    <button class="loja-btn" id="btn-loja-meta" onclick="setLoja('meta',this)" style="background:linear-gradient(135deg,#1a0a00,#2d1200);color:var(--gold);border-left:1px solid var(--gold3);">🎰 Meta Diária</button>
+  </div>
+  <div class="content">
+    <div class="topo-mes" id="topo-card"></div>
+    <div class="sec-titulo">Ranking Acumulado do Mes</div>
+    <div id="rank-list"></div>
+    <div class="footer" id="footer-txt"></div>
+  </div>
+</div>
+  <!-- META DIÁRIA -->
+  <div id="meta-diaria-screen" style="display:none;padding:.85rem 1rem;max-width:560px;margin:0 auto;">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--gold);padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-family:Syne,sans-serif;font-size:.88rem;font-weight:700;color:var(--gold);margin-bottom:1rem;">📋 Registre antes de girar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem;">
+        <div><label style="font-size:.58rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.3rem;">Seu nome</label>
+        <input type="text" id="meta-nome" placeholder="Nome" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-size:.85rem;padding:.65rem .75rem;outline:none;font-family:Inter,sans-serif;"></div>
+        <div><label style="font-size:.58rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.3rem;">Dia</label>
+        <input type="date" id="meta-dia" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-size:.82rem;padding:.65rem .75rem;outline:none;"></div>
+      </div>
+      <div style="margin-bottom:.75rem;">
+        <label style="font-size:.58rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:.3rem;">Serviços extras realizados no dia</label>
+        <input type="number" id="meta-qtd" min="1" placeholder="Ex: 5 (mín. 5 para 1 giro)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--white);font-size:.85rem;padding:.65rem .75rem;outline:none;">
+      </div>
+      <div id="meta-erro" style="font-size:.68rem;color:#E74C3C;margin-bottom:.65rem;display:none;"></div>
+      <button onclick="registrarEGirar()" style="width:100%;background:var(--gold);color:var(--bg);font-family:Syne,sans-serif;font-size:.88rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.9rem;border:none;cursor:pointer;">🎰 Registrar e Girar a Roleta</button>
+      <div style="font-size:.62rem;color:var(--gray2);text-align:center;margin-top:.65rem;line-height:1.6;">5 extras = 1 giro · 10 = 2 giros · 15 = 3 giros</div>
+    </div>
+    <div id="roleta-section" style="display:none;">
+      <div style="text-align:center;margin-bottom:.85rem;">
+        <div style="font-family:Syne,sans-serif;font-size:.7rem;color:var(--gray2);letter-spacing:.12em;text-transform:uppercase;">Boa sorte,</div>
+        <div style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:var(--gold);" id="roleta-nome-display">—</div>
+      <div id="roleta-giros" style="font-size:.68rem;color:#22c55e;margin-top:.3rem;font-weight:600;"></div>
+      </div>
+      <div style="position:relative;display:flex;justify-content:center;margin-bottom:1.1rem;">
+        <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);z-index:10;width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:24px solid var(--gold);filter:drop-shadow(0 2px 6px rgba(196,162,101,.6));"></div>
+        <canvas id="roleta-canvas" width="300" height="300" style="border-radius:50%;box-shadow:0 0 40px rgba(196,162,101,.2),0 0 0 3px var(--gold3);display:block;"></canvas>
+      </div>
+      <button id="btn-girar" onclick="girarRoleta()" style="display:block;width:100%;background:linear-gradient(135deg,var(--verde),var(--verde3));color:var(--white);font-family:Syne,sans-serif;font-size:.95rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:1rem;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(13,61,46,.5);">🎰 GIRAR</button>
+      <div id="roleta-resultado" style="display:none;margin-top:1rem;text-align:center;padding:1.75rem;background:var(--bg2);border:1px solid var(--gold3);animation:fadeIn .4s ease;">
+        <div id="res-emoji" style="font-size:3.5rem;margin-bottom:.65rem;"></div>
+        <div id="res-titulo" style="font-family:Syne,sans-serif;font-size:1.2rem;font-weight:800;color:var(--gold);"></div>
+        <div id="res-sub" style="font-size:.72rem;color:var(--gray2);margin-top:.4rem;line-height:1.6;"></div>
+        <button id="res-btn-novo" onclick="novaRodada()" style="display:none;margin-top:1.1rem;background:var(--bg3);border:1px solid var(--border);color:var(--gray2);font-size:.72rem;padding:.5rem 1.5rem;cursor:pointer;font-family:Syne,sans-serif;">Registrar outro</button>
+      </div>
+    </div>
+    <div style="margin-top:1.1rem;">
+      <div style="font-size:.58rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);margin-bottom:.65rem;">Histórico de Giros</div>
+      <div id="meta-historico"></div>
+    </div>
+  </div>
+
+
+<div id="modal-overlay" onclick="fecharModal(event)">
+  <div id="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-nome" id="modal-nome">-</div>
+        <div style="font-size:.62rem;color:var(--gray2);margin-top:.2rem;" id="modal-sub">-</div>
+      </div>
+      <button class="modal-fechar" onclick="fecharModalBtn()">x</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+var SHEET_ID = '1ZAzI1unL5MMCd6IIYDgSmbjAgpetXJIRw2egAYXNjqY';
+var lojaAtiva = 'matriz';
+var DATA = {matriz:[],fb2:[]};
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+var _sb = supabase.createClient(
+  'https://knbjmzasyfepojkabrij.supabase.co',
+  'sb_publishable_vWplcuwnCxywPlWxJ_eFyw_FhHgwykm'
+);
+var USUARIO_LOGADO = null; // username
+var USUARIO_NOME   = null; // nome completo
+var USUARIO_ID     = null; // auth user id
+var META_REGISTROS = [];   // cache local de giros
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function formatarCelular(v){
+  var d=v.replace(/\D/g,'').substring(0,11);
+  if(d.length<=2) return d;
+  if(d.length<=6) return '('+d.substring(0,2)+') '+d.substring(2);
+  if(d.length<=10) return '('+d.substring(0,2)+') '+d.substring(2,6)+'-'+d.substring(6);
+  return '('+d.substring(0,2)+') '+d.substring(2,7)+'-'+d.substring(7);
+}
+function normalizarUsuario(v){
+  return v.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9_.]/g,'');
+}
+
+function fetchSheet(id, aba){
+  return new Promise(function(resolve,reject){
+    var cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    var t=setTimeout(function(){delete window[cb];reject(new Error('Timeout'));},15000);
+    window[cb]=function(data){
+      clearTimeout(t);delete window[cb];
+      try{
+        var cols=data.table.cols.map(function(c){return c.label||c.id||'';});
+        var rows=data.table.rows.map(function(r){
+          var o={};cols.forEach(function(h,i){o[h]=(r.c&&r.c[i]&&r.c[i].v!==null)?r.c[i].v:'';});return o;
+        });
+        resolve(rows);
+      }catch(e){reject(e);}
+    };
+    var s=document.createElement('script');
+    s.src='https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=responseHandler:'+cb+'&sheet='+encodeURIComponent(aba);
+    s.onerror=function(){clearTimeout(t);delete window[cb];reject(new Error('Erro rede'));};
+    document.head.appendChild(s);
+  });
+}
+
+function getSema(val,meta,semanasD){
+  if(!meta)return{hex:'#444',label:'-',pct:0};
+  var esp=meta/4*semanasD,pct=esp>0?Math.round(val/esp*100):0;
+  if(pct>=95)return{hex:'#27AE60',label:'No ritmo',pct:pct};
+  if(pct>=50)return{hex:'#F1C40F',label:'Atencao',pct:pct};
+  return{hex:'#E74C3C',label:'Abaixo',pct:pct};
+}
+
+var NIVEIS=[
+  {key:'Diamante',icon:'💎',cor:'#B9F2FF',desc:'Performance excepcional'},
+  {key:'Ouro',    icon:'🏆',cor:'#FFD700',desc:'Excelente desempenho'},
+  {key:'Prata',   icon:'🥈',cor:'#C0C0C0',desc:'Bom mes, falta pouco'},
+  {key:'Bronze',  icon:'🥉',cor:'#CD7F32',desc:'Meta minima atingida'},
+];
+
+function getNivel(prod,ext,bp,pp,op,dp,be,pe,oe,de){
+  // Nível só é atingido quando AMBOS (produto E extra) batem a meta do nível
+  if(dp&&bp&&prod>=dp&&ext>=de) return 'Diamante';
+  if(op&&bp&&prod>=op&&ext>=oe) return 'Ouro';
+  if(pp&&bp&&prod>=pp&&ext>=pe) return 'Prata';
+  if(bp&&be&&prod>=bp&&ext>=be) return 'Bronze';
+  return null;
+}
+// Bônus por nível
+var BONUS = {Bronze:190, Prata:280, Ouro:420, Diamante:null};
+function nc(nivel){return NIVEIS.find(function(n){return n.key===nivel;})||{icon:'-',cor:'var(--gray)',desc:'Sem nivel'};}
+
+function processar(rows){
+  var map={};
+  rows.forEach(function(r){
+    var keys=Object.keys(r);
+    var nome=String(r[keys[0]]||'').trim();if(!nome||nome.length<2)return;
+    var wpp=String(r[keys[1]]||'').replace(/\D/g,'');
+    var semana=String(r[keys[2]]||'').trim();
+    var srv=parseInt(r[keys[3]])||0,cli=parseInt(r[keys[4]])||0,prd=parseInt(r[keys[5]])||0,ext=parseInt(r[keys[6]])||0;
+    var bp=parseInt(r[keys[7]])||0,pp=parseInt(r[keys[8]])||0,op=parseInt(r[keys[9]])||0,dp=parseInt(r[keys[10]])||0;
+    var be=parseInt(r[keys[11]])||0,pe=parseInt(r[keys[12]])||0,oe=parseInt(r[keys[13]])||0,de=parseInt(r[keys[14]])||0;
+    if(!map[nome])map[nome]={nome:nome,wpp:wpp,srv:0,cli:0,prd:0,ext:0,bp:0,pp:0,op:0,dp:0,be:0,pe:0,oe:0,de:0,semanas:{}};
+    var p=map[nome];
+    p.semanas[semana]={srv:srv,cli:cli,prd:prd,ext:ext};
+    p.srv+=srv;p.cli+=cli;p.prd+=prd;p.ext+=ext;
+    if(bp>p.bp){p.bp=bp;p.pp=pp;p.op=op;p.dp=dp;}
+    if(be>p.be){p.be=be;p.pe=pe;p.oe=oe;p.de=de;}
+  });
+  var profs=Object.values(map).filter(function(p){return p.srv>0||p.prd>0||p.ext>0;});
+  var mg={bp:0,pp:0,op:0,dp:0,be:0,pe:0,oe:0,de:0};
+  profs.forEach(function(p){
+    if(p.bp>mg.bp){mg.bp=p.bp;mg.pp=p.pp;mg.op=p.op;mg.dp=p.dp;}
+    if(p.be>mg.be){mg.be=p.be;mg.pe=p.pe;mg.oe=p.oe;mg.de=p.de;}
+  });
+  profs.forEach(function(p){
+    if(!p.bp){p.bp=mg.bp;p.pp=mg.pp;p.op=mg.op;p.dp=mg.dp;}
+    if(!p.be){p.be=mg.be;p.pe=mg.pe;p.oe=mg.oe;p.de=mg.de;}
+  });
+  return profs;
+}
+
+window.addEventListener('load', async function(){
+  var { data:{ session } } = await _sb.auth.getSession();
+  if(session){
+    var { data:prof } = await _sb.from('profiles').select('*').eq('id',session.user.id).single();
+    if(prof){
+      USUARIO_ID=session.user.id; USUARIO_LOGADO=prof.usuario; USUARIO_NOME=prof.nome_completo;
+      document.getElementById('login-screen').style.display='none';
+      await iniciarApp(); return;
+    }
+  }
+  document.getElementById('loading').style.display='none';
+  setTimeout(function(){ var u=document.getElementById('login-usuario'); if(u) u.focus(); },300);
+});
+
+function setLoja(loja,btn){
+  lojaAtiva=loja;
+  document.querySelectorAll('.loja-btn').forEach(function(b){b.classList.toggle('active',b===btn);});
+  var isMeta=loja==='meta';
+  document.getElementById('hdr-badge').textContent=loja==='fb2'?'FB 2':isMeta?'Meta Diária':'FB Matriz';
+  // toggle ranking content
+  var rankWrap=document.querySelector('.content');
+  if(rankWrap) rankWrap.style.display=isMeta?'none':'block';
+  // toggle meta screen
+  var metaEl=document.getElementById('meta-diaria-screen');
+  if(metaEl) metaEl.style.display=isMeta?'block':'none';
+  if(isMeta){
+    // Pre-fill
+    var ni=document.getElementById('meta-nome');
+    if(ni){
+      ni.value = USUARIO_NOME||USUARIO_LOGADO||'';
+      ni.readOnly = true;
+      ni.style.opacity = '.6';
+      ni.style.cursor = 'default';
+      ni.style.borderColor = 'var(--border)';
+    }
+    var di=document.getElementById('meta-dia');
+    if(di&&!di.value) di.value=new Date().toISOString().split('T')[0];
+    desenharRoleta();
+    renderHistorico();
+  } else {
+    renderTudo();
+  }
+}
+
+function renderTudo(){
+  var profs=DATA[lojaAtiva];
+  if(!profs||!profs.length){
+    document.getElementById('rank-list').innerHTML='<div style="text-align:center;padding:3rem;color:var(--gray);font-size:.78rem;">Sem dados para esta unidade.</div>';
+    document.getElementById('topo-card').innerHTML='';return;
+  }
+  var sorted=profs.slice().sort(function(a,b){return((b.prd*2)+b.ext)-((a.prd*2)+a.ext);});
+  renderTopo(sorted[0]);
+  var html=sorted.map(function(p,i){
+    var pos=i+1;
+    var semanasD=Math.max(Object.keys(p.semanas).length,1);
+    var sp=getSema(p.prd,p.bp,semanasD),se=getSema(p.ext,p.be,semanasD);
+    var pior=(sp.pct<=se.pct)?sp:se;
+    var nivel=getNivel(p.prd,p.ext,p.bp,p.pp,p.op,p.dp,p.be,p.pe,p.oe,p.de);
+    var ncfg=nc(nivel);
+    var medal=pos===1?'🥇 ':pos===2?'🥈 ':pos===3?'🥉 ':'';
+    var cls=pos===1?'pos1':pos===2?'pos2':pos===3?'pos3':'';
+    return '<div class="rank-item '+cls+'" onclick="abrirModal(\''+encodeURIComponent(p.nome)+'\')">'+
+      '<div class="rank-num">'+pos+'</div>'+
+      '<div class="rank-sema" style="background:'+pior.hex+';box-shadow:0 0 7px '+pior.hex+'88;"></div>'+
+      '<div class="rank-body">'+
+        '<div class="rank-nome">'+medal+p.nome+'</div>'+
+        '<div class="rank-sub">Prod: '+p.prd+' · Extras: '+p.ext+' · Clientes: '+p.cli+'</div>'+
+      '</div>'+
+      '<div class="rank-right">'+
+        '<div class="rank-nivel" style="color:'+ncfg.cor+';">'+(nivel||'—')+'</div>'+
+        '<div class="rank-nums">'+p.prd+'+'+p.ext+'</div>'+
+      '</div>'+
+      '<div class="rank-chevron">›</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('rank-list').innerHTML=html;
+  document.getElementById('footer-txt').textContent='Atualizado '+new Date().toLocaleDateString('pt-BR')+' as '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · Toque para ver detalhes';
+}
+
+function renderTopo(p){
+  if(!p){document.getElementById('topo-card').innerHTML='';return;}
+  var nivel=getNivel(p.prd,p.ext,p.bp,p.pp,p.op,p.dp,p.be,p.pe,p.oe,p.de);
+  var ncfg=nc(nivel);
+  var icons={Diamante:'💎',Ouro:'🏆',Prata:'🥈',Bronze:'🥉'};
+  var icon=icons[nivel]||'🏆';
+  document.getElementById('topo-card').innerHTML=
+    '<div class="topo-label">🏆 Lider do Mes</div>'+
+    '<div class="topo-body">'+
+      '<div class="topo-pos">1</div>'+
+      '<div class="topo-info">'+
+        '<div class="topo-nome">'+icon+' '+p.nome+'</div>'+
+        '<div class="topo-nivel" style="color:'+ncfg.cor+';">'+(nivel||'Sem nivel')+' · '+ncfg.desc+'</div>'+
+        '<div class="topo-nums">'+
+          '<div class="topo-num"><div class="topo-num-lbl">Produtos</div><div class="topo-num-val" style="color:var(--gold);">'+p.prd+'</div></div>'+
+          '<div class="topo-num"><div class="topo-num-lbl">Extras</div><div class="topo-num-val" style="color:var(--blue);">'+p.ext+'</div></div>'+
+          '<div class="topo-num"><div class="topo-num-lbl">Servicos</div><div class="topo-num-val">'+p.srv+'</div></div>'+
+          '<div class="topo-num"><div class="topo-num-lbl">Clientes</div><div class="topo-num-val">'+p.cli+'</div></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+
+function abrirModal(nomeEnc){
+  var nome=decodeURIComponent(nomeEnc);
+  var p=DATA[lojaAtiva].find(function(x){return x.nome===nome;});
+  if(!p)return;
+  document.getElementById('modal-nome').textContent=p.nome;
+  document.getElementById('modal-sub').textContent=(lojaAtiva==='fb2'?'FB 2':'FB Matriz')+' · Acumulado do mes';
+  var nivel=getNivel(p.prd,p.ext,p.bp,p.pp,p.op,p.dp,p.be,p.pe,p.oe,p.de);
+  var ncfg=nc(nivel);
+  var semanasD=Math.max(Object.keys(p.semanas).length,1);
+  var icons={Diamante:'💎',Ouro:'🏆',Prata:'🥈',Bronze:'🥉'};
+  var html='';
+
+  // Nivel
+  html+='<div class="nivel-strip" style="border-left:3px solid '+ncfg.cor+';background:'+ncfg.cor+'0A;">'+
+    '<div style="font-size:1.8rem;flex-shrink:0;">'+(icons[nivel]||'—')+'</div>'+
+    '<div><div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:800;color:'+ncfg.cor+';">'+(nivel||'Sem nivel')+'</div>'+
+    '<div style="font-size:.65rem;color:var(--gray2);margin-top:.15rem;">'+ncfg.desc+'</div></div>'+
+  '</div>';
+
+  // Acumulado
+  html+='<div class="acum-box">'+
+    '<div class="acum-titulo">Acumulado do Mes</div>'+
+    '<div class="acum-grid">'+
+      '<div><div style="font-size:.58rem;color:var(--gray);">Servicos</div><div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:700;">'+p.srv+'</div></div>'+
+      '<div><div style="font-size:.58rem;color:var(--gray);">Clientes</div><div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:700;">'+p.cli+'</div></div>'+
+      '<div><div style="font-size:.58rem;color:var(--gray);">Produtos</div><div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:700;color:var(--gold);">'+p.prd+'</div></div>'+
+      '<div><div style="font-size:.58rem;color:var(--gray);">Extras</div><div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:700;color:var(--blue);">'+p.ext+'</div></div>'+
+    '</div>';
+
+  if(p.bp){
+    // Meta máxima disponível (Diamante se existir, senão Ouro, etc)
+    var metaMaxP = p.dp||p.op||p.pp||p.bp;
+    var metaMaxE = p.de||p.oe||p.pe||p.be;
+    var sp=getSema(p.prd,p.bp,semanasD),se=getSema(p.ext,p.be,semanasD);
+    // Progresso: até a meta máxima (Diamante ou última disponível)
+    var pctP=Math.min(100,Math.round(p.prd/metaMaxP*100));
+    var pctE=Math.min(100,Math.round(p.ext/metaMaxE*100));
+    // Cor da barra: nível atual atingido individualmente (para cor)
+    var corP=p.prd>=(p.dp||999)?'#B9F2FF':p.prd>=(p.op||999)?'#FFD700':p.prd>=(p.pp||999)?'#C0C0C0':p.prd>=p.bp?'#CD7F32':'#E74C3C';
+    var corE=p.ext>=(p.de||999)?'#B9F2FF':p.ext>=(p.oe||999)?'#FFD700':p.ext>=(p.pe||999)?'#C0C0C0':p.ext>=p.be?'#CD7F32':'#E74C3C';
+    html+='<div style="margin-top:.85rem;">'+
+      '<div class="prog-row"><span>Produtos</span><span style="color:'+corP+';">'+p.prd+' / '+metaMaxP+'</span></div>'+
+      '<div class="prog-bar"><div class="prog-fill" style="width:'+pctP+'%;background:'+corP+';"></div></div>'+
+      '<div class="prog-row"><span>Extras</span><span style="color:'+corE+';">'+p.ext+' / '+metaMaxE+'</span></div>'+
+      '<div class="prog-bar"><div class="prog-fill" style="width:'+pctE+'%;background:'+corE+';"></div></div>'+
+    '</div>';
+    // Nível conquistado + bônus
+    var nivelAtual = getNivel(p.prd,p.ext,p.bp,p.pp,p.op,p.dp,p.be,p.pe,p.oe,p.de);
+    var bonus = nivelAtual ? BONUS[nivelAtual] : null;
+    if(nivelAtual && bonus){
+      var ncBonus = nc(nivelAtual);
+      html+='<div style="background:'+ncBonus.cor+'15;border:1px solid '+ncBonus.cor+'55;padding:.75rem 1rem;margin-top:.65rem;display:flex;align-items:center;justify-content:space-between;">'+
+        '<div><div style="font-size:.58rem;color:var(--gray);letter-spacing:.1em;text-transform:uppercase;">Bonus conquistado</div>'+
+        '<div style="font-family:Syne,sans-serif;font-size:.78rem;font-weight:700;color:'+ncBonus.cor+';margin-top:.15rem;">'+nivelAtual+' atingido!</div></div>'+
+        '<div style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:'+ncBonus.cor+';">R$'+bonus+'</div>'+
+      '</div>';
+    }
+    // Tags de metas — cada uma só verde se AMBOS bateram
+    html+='<div class="metas-strip" style="margin-top:.65rem;">';
+    var metasConfig=[
+      {label:'Bronze',mp:p.bp,me:p.be,cor:'#CD7F32',bonus:190},
+      {label:'Prata', mp:p.pp,me:p.pe,cor:'#C0C0C0',bonus:280},
+      {label:'Ouro',  mp:p.op,me:p.oe,cor:'#FFD700',bonus:420},
+      {label:'Diamante',mp:p.dp,me:p.de,cor:'#B9F2FF',bonus:null},
+    ];
+    metasConfig.forEach(function(m){
+      if(!m.mp)return;
+      var ok=p.prd>=m.mp&&p.ext>=m.me; // AMBOS necessários
+      var parcPrd=p.prd>=m.mp, parcExt=p.ext>=m.me;
+      var label=m.label+(m.bonus?(' R$'+m.bonus):'');
+      html+='<div class="meta-tag" style="color:'+m.cor+';border-color:'+m.cor+(ok?';background:'+m.cor+'22':'')+';opacity:'+(ok?1:.5)+';">'+
+        (ok?'✓ ':'')+label+'<div style="font-size:.52rem;margin-top:.1rem;opacity:.8;">'+m.mp+'P'+(parcPrd&&!ok?'✓':'')+' / '+m.me+'E'+(parcExt&&!ok?'✓':'')+'</div></div>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+
+  // Semanas
+  html+='<div style="margin-top:.85rem;"><div class="sec-titulo">Por Semana</div>';
+  ['Semana 1','Semana 2','Semana 3','Semana 4'].forEach(function(sk,i){
+    var sw=p.semanas[sk];
+    var tem=sw&&(sw.srv>0||sw.prd>0||sw.ext>0);
+    // Semáforo individual por item — ritmo acumulado até esta semana
+    var sp2=tem?getSema(sw.prd,p.bp,i+1):{hex:'#333',pct:0};
+    var se2=tem?getSema(sw.ext,p.be,i+1):{hex:'#333',pct:0};
+    // Cor do card = pior dos dois (quem está mais longe da meta)
+    var pior2=(sp2.pct<=se2.pct)?sp2:se2;
+    html+='<div class="semana-card" style="'+(tem?'border-left-color:'+pior2.hex+';':'opacity:.4;')+'">';
+    html+='<div class="semana-hd">'+
+      '<div class="semana-label">'+sk+'</div>'+
+      (tem?'<div style="display:flex;gap:.3rem;align-items:center;">'+
+        '<div class="semana-sema" style="background:'+sp2.hex+';box-shadow:0 0 4px '+sp2.hex+'88;" title="Produtos"></div>'+
+        '<div class="semana-sema" style="background:'+se2.hex+';box-shadow:0 0 4px '+se2.hex+'88;" title="Extras"></div>'+
+      '</div>':'<div style="font-size:.58rem;color:var(--gray);">Sem registro</div>')+
+    '</div>';
+    if(tem){
+      html+='<div class="semana-grid">'+
+        '<div class="semana-kpi"><div class="semana-kpi-lbl">Servicos</div><div class="semana-kpi-val">'+sw.srv+'</div></div>'+
+        '<div class="semana-kpi"><div class="semana-kpi-lbl">Clientes</div><div class="semana-kpi-val">'+sw.cli+'</div></div>'+
+        '<div class="semana-kpi"><div class="semana-kpi-lbl">Produtos</div><div class="semana-kpi-val" style="color:'+sp2.hex+';">'+sw.prd+'</div></div>'+
+        '<div class="semana-kpi"><div class="semana-kpi-lbl">Extras</div><div class="semana-kpi-val" style="color:'+se2.hex+';">'+sw.ext+'</div></div>'+
+      '</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+
+  document.getElementById('modal-body').innerHTML=html;
+  setTimeout(function(){
+    document.querySelectorAll('.prog-fill').forEach(function(el){var w=el.style.width;el.style.width='0';setTimeout(function(){el.style.width=w;},30);});
+  },50);
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function fecharModal(e){if(e.target===document.getElementById('modal-overlay'))fecharModalBtn();}
+function fecharModalBtn(){document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow='';}
+var _ts=0;
+document.getElementById('modal-sheet').addEventListener('touchstart',function(e){_ts=e.touches[0].clientY;});
+document.getElementById('modal-sheet').addEventListener('touchend',function(e){if(e.changedTouches[0].clientY-_ts>80)fecharModalBtn();});
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────────
+var _loginAba = 'entrar';
+
+function setLoginAba(aba){
+  _loginAba=aba;
+  var ea=document.getElementById('login-aba-entrar'), ca=document.getElementById('login-aba-cad');
+  if(ea){ ea.style.background=aba==='entrar'?'var(--verde)':'transparent'; ea.style.color=aba==='entrar'?'var(--white)':'var(--gray2)'; }
+  if(ca){ ca.style.background=aba==='cadastrar'?'var(--verde)':'transparent'; ca.style.color=aba==='cadastrar'?'var(--white)':'var(--gray2)'; }
+  document.getElementById('login-form-entrar').style.display=aba==='entrar'?'block':'none';
+  document.getElementById('login-form-cad').style.display=aba==='cadastrar'?'block':'none';
+  document.getElementById('login-erro').style.display='none';
+}
+
+async function fazerLogout(){
+  await _sb.auth.signOut();
+  USUARIO_LOGADO=null; USUARIO_NOME=null; USUARIO_ID=null; META_REGISTROS=[];
+  document.getElementById('app').style.display='none';
+  document.getElementById('tesouro-widget').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-usuario').value='';
+  document.getElementById('login-senha').value='';
+  document.getElementById('login-erro').style.display='none';
+}
+
+async function fazerLogin(){
+  var usuario=(document.getElementById('login-usuario').value||'').trim().toLowerCase();
+  var senha=(document.getElementById('login-senha').value||'').trim();
+  var erroEl=document.getElementById('login-erro');
+  if(!usuario||!senha){ erroEl.textContent='Preencha usuário e senha.'; erroEl.style.display='block'; return; }
+  erroEl.style.display='none';
+  var btnEl=document.querySelector('#login-form-entrar button');
+  if(btnEl){ btnEl.textContent='Entrando...'; btnEl.disabled=true; }
+  var { data:prof } = await _sb.from('profiles').select('id,email,nome_completo,usuario').eq('usuario',usuario).maybeSingle();
+  if(!prof){
+    erroEl.textContent='Usuário não encontrado.'; erroEl.style.display='block';
+    if(btnEl){ btnEl.textContent='Entrar'; btnEl.disabled=false; } return;
+  }
+  var { data:authData, error:authErr } = await _sb.auth.signInWithPassword({ email:prof.email, password:senha });
+  if(authErr){
+    erroEl.textContent='Senha incorreta.'; erroEl.style.display='block';
+    if(btnEl){ btnEl.textContent='Entrar'; btnEl.disabled=false; } return;
+  }
+  USUARIO_ID=authData.user.id; USUARIO_LOGADO=prof.usuario; USUARIO_NOME=prof.nome_completo;
+  document.getElementById('login-screen').style.display='none';
+  await iniciarApp();
+}
+
+async function fazerCadastro(){
+  var nomeCompleto=(document.getElementById('cad-nome').value||'').trim();
+  var usuario=(document.getElementById('cad-usuario').value||'').trim();
+  var celular=(document.getElementById('cad-celular').value||'').trim();
+  var email=(document.getElementById('cad-email').value||'').trim().toLowerCase();
+  var emailConf=(document.getElementById('cad-email-conf').value||'').trim().toLowerCase();
+  var senha=(document.getElementById('cad-senha').value||'').trim();
+  var conf=(document.getElementById('cad-conf').value||'').trim();
+  var erroEl=document.getElementById('login-erro');
+  if(!nomeCompleto||!usuario||!celular||!email||!emailConf||!senha||!conf){
+    erroEl.textContent='Preencha todos os campos.'; erroEl.style.display='block'; return;
+  }
+  if(email!==emailConf){ erroEl.textContent='Os e-mails não conferem.'; erroEl.style.display='block'; return; }
+  if(senha!==conf){ erroEl.textContent='As senhas não conferem.'; erroEl.style.display='block'; return; }
+  if(senha.length<4){ erroEl.textContent='Senha mínima: 4 caracteres.'; erroEl.style.display='block'; return; }
+  erroEl.style.display='none';
+  var btnEl=document.querySelector('#login-form-cad button[onclick="fazerCadastro()"]');
+  if(btnEl){ btnEl.textContent='Criando conta...'; btnEl.disabled=true; }
+  var { data:existente } = await _sb.from('profiles').select('id').eq('usuario',usuario).maybeSingle();
+  if(existente){
+    erroEl.textContent='Usuário já existe. Escolha outro.'; erroEl.style.display='block';
+    if(btnEl){ btnEl.textContent='Criar conta'; btnEl.disabled=false; } return;
+  }
+  var { data:authData, error:authErr } = await _sb.auth.signUp({ email:email, password:senha });
+  if(authErr){
+    erroEl.textContent=authErr.message; erroEl.style.display='block';
+    if(btnEl){ btnEl.textContent='Criar conta'; btnEl.disabled=false; } return;
+  }
+  if(!authData||!authData.user){
+    erroEl.textContent='Confirme seu e-mail e tente novamente.'; erroEl.style.display='block';
+    if(btnEl){ btnEl.textContent='Criar conta'; btnEl.disabled=false; } return;
+  }
+  var { error:profErr } = await _sb.from('profiles').insert({
+    id:authData.user.id, nome_completo:nomeCompleto, usuario:usuario, celular:celular, email:email
+  });
+  if(profErr){
+    erroEl.textContent='Erro ao salvar perfil: '+profErr.message; erroEl.style.display='block';
+    if(btnEl){ btnEl.textContent='Criar conta'; btnEl.disabled=false; } return;
+  }
+  USUARIO_ID=authData.user.id; USUARIO_LOGADO=usuario; USUARIO_NOME=nomeCompleto;
+  document.getElementById('login-screen').style.display='none';
+  await iniciarApp();
+}
+
+async function iniciarApp(){
+  document.getElementById('loading').style.display='flex';
+  var tw=document.getElementById('tesouro-widget');
+  if(tw) tw.style.display='block';
+  // Carregar giros do Supabase
+  var { data:giros } = await _sb.from('giros').select('*').eq('user_id',USUARIO_ID).order('ts',{ascending:false});
+  META_REGISTROS=(giros||[]).map(function(g){
+    return { id:g.id, _pendId:g.pend_id||'', nome:g.nome, usuario:g.usuario,
+             dia:g.dia, hora:g.hora, qtdExtras:g.extras, giros:g.qtd_giros,
+             premio:Number(g.premio)||0, detalhes:g.detalhes?JSON.parse(g.detalhes):[],
+             recebido:g.recebido||false, recebidoEm:g.recebido_em, ts:g.ts };
+  });
+  atualizarTesouro();
+  // Carregar ranking do Google Sheets
+  try {
+    var res=await Promise.all([fetchSheet(SHEET_ID,'FB_MATRIZ'),fetchSheet(SHEET_ID,'FB2')]);
+    DATA.matriz=processar(res[0]); DATA.fb2=processar(res[1]);
+  } catch(e){ console.warn('Ranking:',e.message); }
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='block';
+  renderTudo();
+}
+
+
+
+// ── TESOURO ───────────────────────────────────────────────────────────────────
+function abrirTesouro(){
+  var nome = USUARIO_NOME||USUARIO_LOGADO||'';
+  var todos = META_REGISTROS.filter(function(r){ return r.premio && (!USUARIO_LOGADO||r.usuario===USUARIO_LOGADO); });
+  var pendentes  = todos.filter(function(r){ return !r.recebido; });
+  var recebidos  = todos.filter(function(r){ return r.recebido; });
+  var saldo = pendentes.reduce(function(s,r){ return s+(r.premio||0); },0);
+
+  var el=document.getElementById('tesouro-modal-saldo');
+  if(el) el.textContent='R$ '+saldo.toFixed(2).replace('.',',');
+  var nm=document.getElementById('tesouro-modal-nome');
+  if(nm) nm.textContent=nome;
+
+  // ── Seção pendentes ───────────────────────────────────────────────────────
+  var elP = document.getElementById('tesouro-hist-pendente');
+  if(elP){
+    if(!pendentes.length){
+      elP.innerHTML='<div style="font-size:.7rem;color:var(--gray);padding:.5rem 0;">Nenhum bônus pendente</div>';
+    } else {
+      elP.innerHTML = pendentes.map(function(r){
+        var data = r.dia ? r.dia.split('-').reverse().join('/') : '—';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.55rem .75rem;margin-bottom:.35rem;background:#051a0d;border:1px solid rgba(34,197,94,.2);border-left:3px solid #22c55e;">'+
+          '<div>'+
+            '<div style="font-size:.72rem;color:var(--white);font-weight:600;">'+data+'</div>'+
+            '<div style="font-size:.6rem;color:var(--gray2);margin-top:.1rem;">'+r.qtdExtras+' extras · '+r.giros+' giro'+(r.giros>1?'s':'')+'</div>'+
+          '</div>'+
+          '<div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:800;color:#22c55e;">R$ '+r.premio+'</div>'+
+        '</div>';
+      }).join('');
+    }
+  }
+
+  // ── Seção recebidos ───────────────────────────────────────────────────────
+  var elR = document.getElementById('tesouro-hist-recebidos');
+  if(elR){
+    if(!recebidos.length){
+      elR.innerHTML='<div style="font-size:.7rem;color:var(--gray);padding:.5rem 0;">Nenhum recebimento registrado ainda</div>';
+    } else {
+      // Agrupa por data de recebimento
+      var grupos = {};
+      recebidos.forEach(function(r){
+        var key = r.recebidoEm || 'Data não registrada';
+        if(!grupos[key]) grupos[key] = {data:key, total:0, itens:[]};
+        grupos[key].total += r.premio||0;
+        grupos[key].itens.push(r);
+      });
+      elR.innerHTML = Object.values(grupos).map(function(g){
+        return '<div style="margin-bottom:.65rem;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:var(--bg3);border:1px solid var(--border);">'+
+            '<div>'+
+              '<div style="font-size:.68rem;font-weight:700;color:var(--gray2);">✓ Recebido em</div>'+
+              '<div style="font-size:.62rem;color:var(--gray);margin-top:.1rem;">'+g.data+'</div>'+
+            '</div>'+
+            '<div style="font-family:Syne,sans-serif;font-size:.95rem;font-weight:700;color:var(--gray2);">R$ '+g.total.toFixed(2).replace('.',',')+'</div>'+
+          '</div>'+
+          g.itens.map(function(r){
+            var data=r.dia?r.dia.split('-').reverse().join('/'):'—';
+            return '<div style="display:flex;justify-content:space-between;padding:.35rem .75rem;border-bottom:1px solid rgba(255,255,255,.03);font-size:.65rem;">'+
+              '<div style="color:var(--gray);">'+data+' · '+r.qtdExtras+' extras</div>'+
+              '<div style="color:var(--gray);">R$ '+r.premio+'</div></div>';
+          }).join('')+
+        '</div>';
+      }).join('');
+    }
+  }
+
+  document.getElementById('tesouro-modal').style.display='flex';
+}
+function fecharTesouro(){
+  document.getElementById('tesouro-modal').style.display='none';
+}
+
+async function confirmarRecebido(){
+  var saldo=getSaldo();
+  if(saldo<=0){ alert('Nenhum saldo pendente para receber.'); return; }
+  var ok=confirm('Confirmar recebimento de R$ '+saldo.toFixed(2).replace('.',',')+' ?\n\nIsso vai zerar o saldo e registrar o recebimento.\nUse apenas após o gestor confirmar o pagamento.');
+  if(!ok) return;
+
+  var agora=new Date().toISOString();
+  var agoraFmt=new Date().toLocaleDateString('pt-BR')+' '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  var pendentes=META_REGISTROS.filter(function(r){ return !r.recebido&&r.premio; });
+  var ids=pendentes.map(function(r){ return r.id; }).filter(Boolean);
+  if(ids.length>0){
+    await _sb.from('giros').update({ recebido:true, recebido_em:agora }).in('id',ids);
+  }
+  pendentes.forEach(function(r){ r.recebido=true; r.recebidoEm=agoraFmt; });
+  atualizarTesouro();
+  fecharTesouro();
+  var tw=document.getElementById('tesouro-widget');
+  if(tw){
+    tw.innerHTML='<div style="background:linear-gradient(135deg,#064e1c,#0a7a2e);border:2px solid #22c55e;border-radius:12px;padding:.75rem 1rem;text-align:center;box-shadow:0 4px 20px rgba(34,197,94,.5);"><div style="font-size:1.2rem;">✅</div><div style="font-family:Syne,sans-serif;font-size:.7rem;font-weight:700;color:#22c55e;">Recebido!</div></div>';
+    setTimeout(function(){ atualizarTesouro(); },2000);
+  }
+}
+
+// ── ROLETA META DIÁRIA ────────────────────────────────────────────────────────
+var _roletaGirando = false;
+var _roletaAngulo  = 0;
+var _girosRestantes = 0;
+
+// Valores da roleta: 2-5-7-10-12-15 (repetidos para 12 fatias)
+var ROLETA_FATIAS = [
+  {label:'R$ 2',  valor:2,  cor:'#0D3D2E'},
+  {label:'R$ 15', valor:15, cor:'#2d1a00'},
+  {label:'R$ 5',  valor:5,  cor:'#0F4D39'},
+  {label:'R$ 10', valor:10, cor:'#1a3a00'},
+  {label:'R$ 7',  valor:7,  cor:'#0D3D2E'},
+  {label:'R$ 2',  valor:2,  cor:'#0F4D39'},
+  {label:'R$ 12', valor:12, cor:'#2d1a00'},
+  {label:'R$ 5',  valor:5,  cor:'#0D3D2E'},
+  {label:'R$ 15', valor:15, cor:'#1a3a00'},
+  {label:'R$ 7',  valor:7,  cor:'#0F4D39'},
+  {label:'R$ 10', valor:10, cor:'#0D3D2E'},
+  {label:'R$ 2',  valor:2,  cor:'#2d1a00'},
+];
+
+// Saldo pendente (não recebido) do usuário
+function getSaldo(){
+  return META_REGISTROS
+    .filter(function(r){ return !r.recebido && r.premio; })
+    .reduce(function(s,r){ return s+(r.premio||0); },0);
+}
+function atualizarTesouro(){
+  var el=document.getElementById('tesouro-saldo');
+  if(el) el.textContent='R$ '+getSaldo().toFixed(2).replace('.',',');
+}
+
+function calcGiros(qtdExtras){
+  if(qtdExtras>=15) return 3;
+  if(qtdExtras>=10) return 2;
+  if(qtdExtras>=5)  return 1;
+  return 0;
+}
+
+function desenharRoleta(angOffset){
+  var canvas = document.getElementById('roleta-canvas');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var cx=150,cy=150,r=143;
+  var n=ROLETA_FATIAS.length;
+  var ang=(angOffset!==undefined?angOffset:_roletaAngulo)-Math.PI/2;
+  var slice=2*Math.PI/n;
+  ctx.clearRect(0,0,300,300);
+
+  ROLETA_FATIAS.forEach(function(f,i){
+    var s=ang+i*slice, e=s+slice;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,s,e); ctx.closePath();
+    ctx.fillStyle=f.cor; ctx.fill();
+    ctx.strokeStyle='#0A0A0A'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(s+slice/2);
+    ctx.textAlign='right';
+    ctx.font='bold 12px Syne,sans-serif';
+    // Glow dourado
+    ctx.shadowColor='rgba(196,162,101,.6)'; ctx.shadowBlur=6;
+    ctx.fillStyle='#C4A265'; ctx.fillText(f.label,r-10,4);
+    ctx.restore();
+  });
+
+  // Aro externo dourado
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI);
+  ctx.strokeStyle='rgba(196,162,101,.4)'; ctx.lineWidth=3; ctx.stroke();
+
+  // Centro
+  ctx.beginPath(); ctx.arc(cx,cy,22,0,2*Math.PI);
+  ctx.fillStyle='#0A0A0A'; ctx.fill();
+  ctx.strokeStyle='#C4A265'; ctx.lineWidth=2; ctx.stroke();
+  ctx.font='14px sans-serif'; ctx.textAlign='center';
+  ctx.shadowColor='rgba(196,162,101,.8)'; ctx.shadowBlur=8;
+  ctx.fillText('🎰',cx,cy+5);
+}
+
+function registrarEGirar(){
+  var nome = (document.getElementById('meta-nome').value||'').trim();
+  var dia  = document.getElementById('meta-dia').value;
+  var qtd  = parseInt(document.getElementById('meta-qtd').value)||0;
+  var erroEl = document.getElementById('meta-erro');
+
+  if(!nome||!dia||qtd<=0){
+    erroEl.textContent='Preencha todos os campos antes de girar.';
+    erroEl.style.display='block'; return;
+  }
+  var giros = calcGiros(qtd);
+  if(giros===0){
+    erroEl.textContent='Meta mínima: 5 extras por dia para desbloquear 1 giro.';
+    erroEl.style.display='block'; return;
+  }
+  erroEl.style.display='none';
+  _girosRestantes = giros;
+
+  // Hora e sessaoId capturados automaticamente no momento do giro
+  var agora = new Date();
+  var hora = agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  var sessaoId = agora.getTime(); // único por sessão, garante que cada registro seja separado
+
+  window._regPendente = {nome:nome,dia:dia,hora:hora,sessaoId:sessaoId,qtdExtras:qtd,giros:giros};
+  window._premioAcumulado = 0;
+  window._girosDetalhes = [];
+
+  // Mostrar roleta
+  document.getElementById('roleta-nome-display').textContent=nome.split(' ')[0];
+  document.getElementById('roleta-giros').textContent=giros+' giro'+(giros>1?'s':'')+' disponível'+(giros>1?'is':'');
+  document.getElementById('roleta-section').style.display='block';
+  document.getElementById('roleta-resultado').style.display='none';
+  document.getElementById('btn-girar').style.display='block';
+  desenharRoleta();
+  document.getElementById('roleta-section').scrollIntoView({behavior:'smooth'});
+}
+
+function girarRoleta(){
+  if(_roletaGirando||_girosRestantes<=0) return;
+  _roletaGirando=true;
+  _girosRestantes--;
+  document.getElementById('btn-girar').style.display='none';
+  document.getElementById('roleta-resultado').style.display='none';
+
+  var n     = ROLETA_FATIAS.length;
+  var PI2   = 2*Math.PI;
+  var slice = PI2/n;
+
+  // Sorteio com leve peso nos valores menores (índice por índice)
+  var pesos=[3,1,2,2,2,3,1,2,1,2,2,3];
+  var total=pesos.reduce(function(s,p){return s+p;},0);
+  var rnd=Math.random()*total, acum=0, venc=0;
+  for(var i=0;i<pesos.length;i++){acum+=pesos[i];if(rnd<=acum){venc=i;break;}}
+
+  // ── MATEMÁTICA CORRETA ──────────────────────────────────────────────────────
+  // desenharRoleta posiciona fatia i em: ângulo = (_roletaAngulo - π/2) + i*slice
+  // Ponteiro = topo = ângulo 0 no canvas após o offset de -π/2,
+  // ou seja, ponteiro = canvas_angle = -π/2 → corresponde a _roletaAngulo = 0
+  //
+  // Para que o CENTRO da fatia venc fique no topo:
+  //   (_roletaAngulo_final - π/2) + venc*slice + slice/2 ≡ -π/2  (mod 2π)
+  //   _roletaAngulo_final ≡ -(venc*slice + slice/2)  (mod 2π)
+  //   _roletaAngulo_final ≡ -venc*slice - slice/2    (mod 2π)
+  //
+  var angFinalMod = (-(venc*slice + slice/2) % PI2 + PI2) % PI2;
+  // Garante pelo menos 5 voltas completas a partir do ângulo atual
+  var angAtualMod = ((_roletaAngulo % PI2) + PI2) % PI2;
+  var delta = angFinalMod - angAtualMod;
+  if(delta <= 0) delta += PI2;       // ao menos uma volta parcial
+  delta += (5 + Math.floor(Math.random()*4)) * PI2; // + 5-8 voltas completas
+
+  var angIni = _roletaAngulo;
+  var angFim = angIni + delta;
+  var dur = 4000 + Math.random()*1000;
+  var ini = null;
+  function ease(t){return 1-Math.pow(1-t,4);}
+
+  function animar(ts){
+    if(!ini) ini=ts;
+    var t = Math.min((ts-ini)/dur, 1);
+    _roletaAngulo = angIni + delta*ease(t);
+    desenharRoleta();
+    if(t<1){
+      requestAnimationFrame(animar);
+    } else {
+      _roletaAngulo = angFim; // valor exato, sem arredondamento
+      _roletaGirando = false;
+      mostrarResultado(venc); // venc definido pelo sorteio, animação alinha com ele
+    }
+  }
+  requestAnimationFrame(animar);
+}
+
+async function mostrarResultado(idx){
+  var f=ROLETA_FATIAS[idx];
+  var rp=window._regPendente;
+  window._premioAcumulado=(window._premioAcumulado||0)+f.valor;
+  window._girosDetalhes=(window._girosDetalhes||[]).concat(f.valor);
+
+  if(rp){
+    var pendId=rp.nome+'_'+rp.sessaoId;
+    var detalhesJson=JSON.stringify(window._girosDetalhes);
+    var existente=META_REGISTROS.find(function(r){ return r._pendId===pendId; });
+    if(existente){
+      existente.premio=window._premioAcumulado;
+      existente.detalhes=window._girosDetalhes.slice();
+      await _sb.from('giros').update({ premio:window._premioAcumulado, detalhes:detalhesJson }).eq('id',existente.id);
+    } else {
+      var novoLocal={ _pendId:pendId, nome:rp.nome, usuario:USUARIO_LOGADO||'',
+        dia:rp.dia, hora:rp.hora, qtdExtras:rp.qtdExtras, giros:rp.giros,
+        premio:window._premioAcumulado, detalhes:window._girosDetalhes.slice(),
+        recebido:false, ts:new Date().toISOString() };
+      var { data:inserted } = await _sb.from('giros').insert({
+        user_id:USUARIO_ID, nome:rp.nome, usuario:USUARIO_LOGADO||'',
+        extras:rp.qtdExtras, qtd_giros:rp.giros, premio:window._premioAcumulado,
+        dia:rp.dia, hora:rp.hora, pend_id:pendId, detalhes:detalhesJson
+      }).select().single();
+      if(inserted) novoLocal.id=inserted.id;
+      META_REGISTROS.unshift(novoLocal);
+    }
+  }
+
+  var res=document.getElementById('roleta-resultado');
+  document.getElementById('res-emoji').textContent='🏆';
+  document.getElementById('res-titulo').textContent='R$ '+f.valor+' de bônus!';
+  var subTxt='Registrado! Resgate às segundas após conferência.';
+  if(window._premioAcumulado>f.valor) subTxt='Total acumulado nesta rodada: R$ '+window._premioAcumulado;
+  document.getElementById('res-sub').textContent=subTxt;
+  res.style.display='block';
+  atualizarTesouro();
+
+  if(_girosRestantes>0){
+    document.getElementById('roleta-giros').textContent=
+      _girosRestantes+' giro'+(_girosRestantes>1?'s':'')+' restante'+(_girosRestantes>1?'s':'');
+    setTimeout(function(){ res.style.display='none'; document.getElementById('btn-girar').style.display='block'; },2200);
+  } else {
+    document.getElementById('roleta-giros').textContent='';
+    var btn=document.getElementById('res-btn-novo');
+    if(btn) btn.style.display='block';
+  }
+  renderHistorico();
+}
+
+function novaRodada(){
+  document.getElementById('roleta-section').style.display='none';
+  document.getElementById('meta-qtd').value='';
+  _girosRestantes=0;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderHistorico(){
+  var el=document.getElementById('meta-historico');
+  if(!el) return;
+  var hoje=new Date().toISOString().split('T')[0];
+  if(!META_REGISTROS.length){
+    el.innerHTML='<div style="font-size:.72rem;color:var(--gray);text-align:center;padding:1.5rem 0;">Nenhum giro registrado ainda</div>';
+    return;
+  }
+  // Agrupar por dia
+  var grupos={};
+  META_REGISTROS.forEach(function(r){
+    if(!grupos[r.dia]) grupos[r.dia]=[];
+    grupos[r.dia].push(r);
+  });
+  var dias=Object.keys(grupos).sort().reverse();
+  el.innerHTML=dias.map(function(dia){
+    var isHoje=dia===hoje;
+    var label=isHoje?'— Giros de Hoje —':dia.split('-').reverse().join('/');
+    var regs=grupos[dia];
+    // totais do dia
+    var totalGirosDia=regs.reduce(function(s,r){ return s+(r.detalhes&&r.detalhes.length?r.detalhes.length:r.giros||0); },0);
+    var totalPrêmioDia=regs.reduce(function(s,r){ return s+(r.premio||0); },0);
+
+    return '<div style="margin-bottom:1.1rem;">'+
+      '<div style="font-size:.58rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:'+(isHoje?'var(--gold)':'var(--gray)')+';margin:.1rem 0 .4rem;padding-bottom:.3rem;border-bottom:1px solid var(--border);">'+label+'</div>'+
+      regs.map(function(r){
+        var det=r.detalhes&&r.detalhes.length?r.detalhes:[];
+        var girosFeitosLabel=det.length?det.length+' giro'+(det.length>1?'s realizados':'realizado'):r.giros+' giro'+(r.giros>1?'s':'');
+        var borderCor=r.recebido?'var(--gray)':'var(--gold3)';
+        // Linha de cada spin individual
+        var detHtml=det.length?
+          '<div style="margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.05);">'+
+            det.map(function(v,i){
+              return '<div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--gray2);padding:.1rem 0;">'+
+                '<span>Giro '+(i+1)+'</span>'+
+                '<span style="color:var(--gold);font-weight:600;">R$ '+v+'</span>'+
+              '</div>';
+            }).join('')+
+            '<div style="display:flex;justify-content:space-between;font-size:.65rem;font-weight:700;color:'+(r.recebido?'var(--gray2)':'var(--gold)')+';margin-top:.3rem;padding-top:.3rem;border-top:1px solid rgba(255,255,255,.08);">'+
+              '<span>'+(r.recebido?'✓ Recebido':'Total da sessão')+'</span>'+
+              '<span>R$ '+r.premio+'</span>'+
+            '</div>'+
+          '</div>':'';
+
+        return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:2px solid '+borderCor+';padding:.65rem .85rem;margin-bottom:.35rem;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'+
+            '<div>'+
+              '<div style="font-size:.78rem;font-weight:600;color:var(--white);">'+r.nome+'</div>'+
+              '<div style="font-size:.6rem;color:var(--gray2);margin-top:.1rem;">'+r.hora+' · '+r.qtdExtras+' extras · '+girosFeitosLabel+'</div>'+
+            '</div>'+
+            '<div style="font-size:.7rem;font-weight:700;color:'+(r.recebido?'var(--gray2)':'var(--gold)')+';">'+
+              (det.length?'':r.premio?'🏆 R$'+r.premio:'⏳')+
+            '</div>'+
+          '</div>'+
+          detHtml+
+        '</div>';
+      }).join('')+
+      // Totalizador do dia
+      '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border:1px solid var(--border);border-top:2px solid '+(isHoje?'var(--gold3)':'var(--border)')+';padding:.5rem .85rem;margin-top:.15rem;">'+
+        '<div style="font-size:.6rem;color:var(--gray2);">Total do dia · '+totalGirosDia+' giro'+(totalGirosDia!==1?'s':'')+' realizados</div>'+
+        '<div style="font-family:Syne,sans-serif;font-size:.9rem;font-weight:800;color:'+(isHoje?'var(--gold)':'var(--gray2)')+';">R$ '+totalPrêmioDia+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+
+</script>
+</body>
+</html>
